@@ -13,12 +13,12 @@ const io = new Server(server, {
   },
 });
 
-
 app.use(cors());
 
 const rooms = {}; // Store users in rooms
-const activeRooms = new Set(); // Track active rooms
+const usernames = {}; // Store usernames for each room
 
+const activeRooms = new Set(); // Track active rooms
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
@@ -31,7 +31,6 @@ io.on("connection", (socket) => {
     callback(Array.from(activeRooms));
   });
 
-
   // Handle joining room
   socket.on("joinRoom", ({ username, room }, callback) => {
     if (!rooms[room]) {
@@ -40,8 +39,11 @@ io.on("connection", (socket) => {
       io.emit("roomListUpdate", Array.from(activeRooms)); // Broadcast updated room list
     }
 
-
     // Check if username exists in the same room
+    if (usernames[room] && usernames[room][username]) {
+      return callback({ error: "Username already taken in this room" });
+    }
+
     const userExists = rooms[room].some((user) => user.username === username);
 
     if (userExists) {
@@ -49,12 +51,17 @@ io.on("connection", (socket) => {
     }
 
     // Store user in room
+    if (!usernames[room]) {
+      usernames[room] = {};
+    }
+    usernames[room][username] = socket.id; // Store username with socket ID
+
     rooms[room].push({ id: socket.id, username });
     socket.join(room);
 
     console.log(`User ${username} joined room ${room}`);
     callback({ success: true });
-    
+
     // Broadcast that a new user has joined
     socket.to(room).emit("userJoined", `${username} has joined the room.`);
   });
@@ -62,19 +69,27 @@ io.on("connection", (socket) => {
   // Handle sending messages
   socket.on("sendMessage", ({ room, message, username }) => {
     const timestamp = new Date().toLocaleTimeString();
+    console.log("Sending message:", { username, message, room, timestamp }); // Debugging line to trace message sending
+
+
     io.to(room).emit("receiveMessage", { username, message, timestamp });
+    console.log(`Message sent to room ${room}:`, { username, message, timestamp }); // Debugging line to confirm message emission
+
   });
 
   // Handle user disconnect
   socket.on("disconnect", () => {
     for (const room in rooms) {
-      rooms[room] = rooms[room].filter((user) => user.id !== socket.id);
-    if (rooms[room].length === 0) {
-      delete rooms[room];
-      activeRooms.delete(room);
-      io.emit("roomListUpdate", Array.from(activeRooms)); // Broadcast updated room list
-    }
+      if (usernames[room]) {
+        delete usernames[room][username]; // Remove username from the room
+      }
 
+      rooms[room] = rooms[room].filter((user) => user.id !== socket.id);
+      if (rooms[room].length === 0) {
+        delete rooms[room];
+        activeRooms.delete(room);
+        io.emit("roomListUpdate", Array.from(activeRooms)); // Broadcast updated room list
+      }
     }
     console.log("Client disconnected:", socket.id);
   });

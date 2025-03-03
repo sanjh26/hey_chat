@@ -31,7 +31,7 @@ const Home = () => {
   const [username, setUsername] = useState("");
   const [room, setRoom] = useState("");
   const [rooms, setRooms] = useState([]);
-  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,10 +53,12 @@ const Home = () => {
 
   const joinRoom = (roomName = room) => {
     if (!username.trim()) {
+
       alert("Username is required!");
       return;
     }
     if (!roomName.trim()) {
+
       alert("Room Name is required!");
       return;
     }
@@ -66,6 +68,7 @@ const Home = () => {
         alert(response.error);
       } else {
         navigate(`/chat/${roomName}`, { state: { username, room: roomName } });
+
       }
     });
   };
@@ -75,7 +78,7 @@ const Home = () => {
       alert("Please enter a room name!");
       return;
     }
-    setIsCreatingRoom(true);
+
     joinRoom();
   };
 

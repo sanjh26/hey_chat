@@ -15,6 +15,8 @@ const ChatRoom = () => {
     if (!username || !room) return;
 
     const handleReceiveMessage = (data) => {
+      console.log("Received message:", data); // Add this line for debugging
+
       setMessages((prev) => [...prev, { ...data, type: "message" }]);
     };
 
@@ -54,11 +56,11 @@ const ChatRoom = () => {
 
   const sendMessage = () => {
     if (message.trim()) {
+      console.log("Sending message:", { room, message, username }); // Debugging line
       socket.emit("sendMessage", { room, message, username });
       setMessage("");
     }
   };
-
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white p-4">
